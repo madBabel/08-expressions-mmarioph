@@ -1,96 +1,101 @@
-name: 08 Expressions
-env:
-  WORKFLOW_VAR: This is a workflow-level variable
-  OVERWRITTEN: Default workflow value
+# Archivo: .github/workflows/08-expressions.yaml
+name: "08 Expressions"
 on:
-  pull_request:   
+  pull_request:
   workflow_dispatch:
     inputs:
       debug:
+        description: "Enable debug mode"
+        required: false
         type: boolean
         default: false
       fail:
+        description: "Force workflow to fail"
+        required: false
         type: boolean
         default: false
+env:
+  WORKFLOW_VAR: "This is a workflow-level variable"
+  OVERWRITTEN: "Default workflow value"
 
 jobs:
   debug-check:
     runs-on: ubuntu-latest
     env:
-      JOB_VAR: This is a job-level variable
-      OVERWRITTEN: Overwritten at job level
+      JOB_VAR: "This is a job-level variable"
+      OVERWRITTEN: "Overwritten at job level"
     steps:
-      - name: \[Debug\] Print Debug Info
-        if: ${{inputs.debug}}
+      - name: "[Debug] Print Debug Info"
+        if: inputs.debug == 'true'
         run: |
-          echo  "Triggered by: ${{ github.event_name }}" 
-          echo  "Branch: ${{ github.ref }}" 
-          echo  "Commit SHA: ${{ github.sha }}" 
-          echo  "Runner OS: ${{ runner.os }}"
+          echo "Triggered by: ${{ github.event_name }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "Commit SHA: ${{ github.sha }}"
+          echo "Runner OS: ${{ runner.os }}"
 
-      - name: \[Debug\] Triggered from Main
-        if: ${{inputs.debug && github.ref_name == 'main' }}
+      - name: "[Debug] Triggered from Main"
+        if: inputs.debug == 'true' && startsWith(github.ref, 'refs/heads/main')
         run: |
-          echo  "Triggered from main branch!"
+          echo "Triggered from main branch!"
 
-      - name: Print Variables
+      - name: "Print Variables"
         env:
           STEP_VAR: "Step-level variable"
-        if: ${{inputs.debug && github.ref_name == 'main' }}
         run: |
-          echo  "Step var: ${{ env.STEP_VAR }}" 
-          echo "Job var: ${{ env.JOB_VAR }}" 
-          echo "Workflow var: ${{ env.WORKFLOW_VAR }}" 
-          echo "Overwritten: ${{ env.OVERWRITTEN }}"           
-
-      - name: Overwrite and Print
-        env:
-          OVERWRITTEN: Overwritten at step level.
-        if: ${{inputs.debug && github.ref_name == 'main' }}
-        run: |
+          echo "Step var: ${{ env.STEP_VAR }}"
+          echo "Job var: ${{ env.JOB_VAR }}"
+          echo "Workflow var: ${{ env.WORKFLOW_VAR }}"
           echo "Overwritten: ${{ env.OVERWRITTEN }}"
+
+      - name: "Overwrite and Print"
+        run: |
+          export OVERWRITTEN="Overwritten at step level"
+          echo "Overwritten var: $OVERWRITTEN"
 
   functions-pr-data:
     runs-on: ubuntu-latest
     steps:
-      - name: Print PR Info
-        if: ${{github.event_name == 'pull_request'}}
+      - name: "Print PR Info"
+        if: ${{ github.event_name == 'pull_request' }}
         run: |
-          echo " ${{github.event.pull_request.title}}"
+          echo "PR Title: ${{ github.event.pull_request.title }}"
+          echo "PR Labels:"
           cat << EOF
-              ${{ toJSON(github.event.pull_request.labels)}}
-           EOF
+          ${{ toJSON(github.event.pull_request.labels) }}
+          EOF
 
-      - name: Bug Check
-        if: ${{!cancelled() && contains(github.event.pull_request.title,'fix') }}
+      - name: "Bug Check"
+        if: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.title, 'fix') }}
         run: |
-          echo " This PR fixes a bug."
-         
-      - name: Sleep and Cancel       
+          echo "This PR fixes a bug."
+
+      - name: "Sleep and Cancel"
         run: |
-          echo "sleep 20"
-          
-      - name: Failing Step      
+          echo "Sleeping for 20 seconds..."
+          sleep 20
+
+      - name: "Failing Step"
         if: ${{inputs.fail}}
         run: |
+          echo "Failing step as per input parameter."
           exit -1
 
-      - name: Conditional Step - Success
-        if: success()       
+      - name: "Conditional Step - Success"
+        if: success()
         run: |
           echo "All previous steps succeeded."
-         
-      - name: Conditional Step - Failure   
+
+      - name: "Conditional Step - Failure"
         if: failure()
         run: |
-          echo "A previous step failed.
-          
-      - name: Print Always     
-        if: ${{ !cancelled()}}
+          echo "A previous step failed."
+
+      - name: "Print Always"
+        if: ${{ !cancelled() }}
         run: |
-          echo "This step runs unless the workflow is cancelled"
-          
-      - name: On Cancel
-        if: cancelled()       
+          echo "This step runs unless the workflow is cancelled."
+
+      - name: "On Cancel"
+        if: cancelled()
         run: |
-          echo "Workflow cancelled"
+          echo "Workflow cancelled."
